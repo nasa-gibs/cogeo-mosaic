@@ -213,6 +213,7 @@ class BaseBackend(BaseReader):
         x: int,
         y: int,
         z: int,
+        assets: Union[Sequence[str], str] = None,
         reverse: bool = False,
         **kwargs: Any,
     ) -> Tuple[ImageData, List[str]]:
@@ -225,10 +226,26 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, **self.reader_options) as src_dst:
-                return src_dst.tile(x, y, z, **kwargs)
+            with self.reader(asset, **self.reader_options) as cog:
+                data = cog.tile(
+                    x, 
+                    y, 
+                    z, 
+                    **kwargs)
 
-        return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
+                return data
+
+        # Asset file information is passed to rio-tiler.mosaic.reader.py as rgb.
+        output = mosaic_reader(
+            mosaic_assets,
+             _reader,
+              x,
+              y, 
+              z, 
+              rgb = assets,
+              **kwargs)
+
+        return output
 
     def point(
         self,
